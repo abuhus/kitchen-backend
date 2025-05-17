@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shopping List - Kitchen Kompanion</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plaster&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/style/main.css" />
+
+    <style>
+      .shopping-item-card {
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .shopping-item-card span {
+        flex-grow: 1;
+      }
+      .button-group {
+        display: flex;
+        gap: 10px;
+      }
+      .button-group button {
+        padding: 5px 10px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .button-group button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ipad-frame">
+      <div class="ipad-camera"></div>
+
+      <header class="app-header">
+        <div class="header-content">
+          <h2>K</h2>
+          <h3>Shopping List</h3>
+        </div>
+        <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
+      </header>
+
+      <main class="app-content">
+        <form id="shopping-form">
+          <select id="item-location">
+            <option value="Fridge">Fridge</option>
+            <option value="Pantry">Pantry</option>
+            <option value="Freezer">Freezer</option>
+          </select>
+          <input type="text" id="item-name" placeholder="Item name" required />
+          <input type="number" id="item-qty" placeholder="Qty" required />
+          <select id="item-unit">
+            <option value="pcs">pcs</option>
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="cups">cups</option>
+            <option value="liters">liters</option>
+          </select>
+          <button type="submit">Add</button>
+        </form>
+
+        <button id="add-to-inventory-btn">➕ Send to Inventory</button>
+
+        <div id="shopping-list"></div>
+      </main>
+
+      <nav class="app-navbar">
+        <a href="shoppinglist.html" class="nav-item active">
+          <img src="icons/shoppinglist.svg" alt="Shopping List" />
+          <span>Shopping</span>
+        </a>
+        <a href="kitchen.html" class="nav-item">
+          <img src="icons/kitchen.svg" alt="Kitchen" />
+          <span>Inventory</span>
+        </a>
+        <a href="trackcalories.html" class="nav-item">
+          <img src="icons/recipes.svg" alt="Recipes" />
+          <span>Recipe</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+          <img src="icons/profile.svg" alt="Profile" />
+          <span>Profile</span>
+        </a>
+      </nav>
+    </div>
+
+    <script>
+      const form = document.getElementById("shopping-form");
+      const shoppingListContainer = document.getElementById("shopping-list");
+      const addToInventoryBtn = document.getElementById("add-to-inventory-btn");
+
+      const username = localStorage.getItem("username");
+
+      async function fetchUserData() {
+        if (!username) {
+          alert("No user logged in.");
+          window.location.href = "login.html";
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/users/${username}`);
+          if (!res.ok) throw new Error("Failed to load user");
+          return await res.json();
+        } catch (err) {
+          console.error(err);
+          alert("Error fetching user data.");
+        }
+      }
+
+      async function updateUserData(shoppingList, pantry) {
+        try {
+          await fetch(`/api/users/${username}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ shoppingList, pantry }),
+          });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      async function renderList() {
+        const user = await fetchUserData();
+        if (!user) return;
+
+        const ingredients = user.shoppingList;
+        shoppingListContainer.innerHTML = "";
+
+        if (ingredients.length > 0) {
+          ingredients.forEach((item, index) => {
+            const div = document.createElement("div");
+            div.classList.add("shopping-item-card");
+            div.innerHTML = `
+            <span>${item.quantity} ${item.name}</span>
+            <div class="button-group">
+              <button onclick="removeItem(${index})">🗑</button>
+              <button onclick="addToPantry(${index})">Add to Pantry</button>
+            </div>
+          `;
+            shoppingListContainer.appendChild(div);
+          });
+        } else {
+          shoppingListContainer.innerHTML =
+            "<p>No items in the shopping list.</p>";
+        }
+      }
+
+      async function removeItem(index) {
+        const user = await fetchUserData();
+        const list = user.shoppingList;
+        list.splice(index, 1);
+        await updateUserData(list, user.pantry);
+        renderList();
+      }
+
+      async function addToPantry(index) {
+        const user = await fetchUserData();
+        const list = user.shoppingList;
+        const item = list[index];
+        const pantry = user.pantry;
+
+        const location = document.getElementById("item-location").value;
+        pantry.push({
+          name: item.name,
+          quantity: item.quantity,
+          storage: location,
+        });
+
+        list.splice(index, 1);
+        await updateUserData(list, pantry);
+        renderList();
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("item-name").value.trim();
+        const qty = parseInt(document.getElementById("item-qty").value);
+        const unit = document.getElementById("item-unit").value;
+
+        if (!name || isNaN(qty)) return;
+
+        const user = await fetchUserData();
+        const list = user.shoppingList;
+        list.push({ name, quantity: `${qty} ${unit}` });
+
+        await updateUserData(list, user.pantry);
+        form.reset();
+        renderList();
+      });
+
+      addToInventoryBtn.addEventListener("click", async () => {
+        const user = await fetchUserData();
+        const list = user.shoppingList;
+        const pantry = user.pantry;
+        const location = document.getElementById("item-location").value;
+
+        list.forEach((item) => {
+          pantry.push({
+            name: item.name,
+            quantity: item.quantity,
+            storage: location,
+          });
+        });
+
+        await updateUserData([], pantry);
+        renderList();
+        alert("All items moved to Pantry!");
+      });
+
+      function logoutUser() {
+        localStorage.removeItem("username");
+        window.location.href = "login.html";
+      }
+
+      document.addEventListener("DOMContentLoaded", renderList);
+    </script>
+  </body>
+</html>

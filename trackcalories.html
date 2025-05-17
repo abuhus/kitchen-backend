@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Track Calories - Kitchen Kompanion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plaster&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style/main.css" />
+  </head>
+  <body>
+    <div class="ipad-frame">
+      <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
+      <div class="ipad-camera"></div>
+
+      <header class="app-header">
+        <div class="header-content">
+          <h2>K</h2>
+          <h3>Check Calories</h3>
+        </div>
+      </header>
+
+      <main class="app-content">
+        <p> Type in the food you want to check calorie's for, then hit the "Check" button</p>
+        <p> Give it a sec or two for the informatoin to load</p>
+        <div class="calorie-form-container">
+          <form id="calorie-form" class="calorie-form">
+            <input
+              type="text"
+              id="query"
+              placeholder="e.g. 2 eggs and 1 toast"
+              required
+            />
+            <button type="submit">Check</button>
+          </form>
+          <br>
+          <div id="results" class="calorie-results"></div>
+        </div>
+      </main>
+
+      <nav class="app-navbar">
+        <a href="shoppinglist.html" class="nav-item">
+          <img src="icons/shoppinglist.svg" alt="Shopping List" />
+          <span>Shopping</span>
+        </a>
+        <a href="kitchen.html" class="nav-item">
+          <img src="icons/kitchen.svg" alt="Kitchen" />
+          <span>Inventory</span>
+        </a>
+        <a href="trackcalories.html" class="nav-item active">
+          <img src="icons/recipes.svg" alt="Recipes" />
+          <span>Check Calorie</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+          <img src="icons/profile.svg" alt="Profile" />
+          <span>Profile</span>
+        </a>
+      </nav>
+    </div>
+
+    <script>
+      document
+        .getElementById("calorie-form")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+          console.log("Track button clicked");
+          const query = document.getElementById("query").value.trim();
+          const resultsDiv = document.getElementById("results");
+
+          if (!query) return;
+
+          try {
+            console.log("Sending request to /api/calories...");
+            const res = await fetch("/api/calories", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query }),
+            });
+
+            if (!res.ok) throw new Error("Failed to fetch calorie data");
+
+            const data = await res.json();
+            resultsDiv.innerHTML =
+              "<h3>Nutrition Info:</h3>" +
+              data.foods
+                .map(
+                  (food) => `
+      <div class="calorie-item">
+        <strong>${food.food_name}</strong>: ${food.serving_description}<br>
+        Calories: ${food.calories}<br>
+        Protein: ${food.protein}g | Carbs: ${food.carbohydrate}g | Fat: ${food.fat}g
+      </div>
+    `
+                )
+                .join("");
+          } catch (err) {
+            console.error(err);
+            resultsDiv.innerHTML =
+              '<p style="color:red;">Error loading data</p>';
+          }
+        });
+
+      function logoutUser() {
+        localStorage.removeItem("username");
+        window.location.href = "login.html";
+      }
+    </script>
+  </body>
+</html>

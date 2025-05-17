@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile - Kitchen Kompanion</title>
+  <link rel="stylesheet" href="style/main.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plaster&display=swap" rel="stylesheet">
+  <style>
+    .profile-header {
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .profile-pic {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #B55136;
+    }
+    .profile-name {
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: #B55136;
+      margin-top: 0.5rem;
+    }
+    .profile-section {
+      margin: 1rem;
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .profile-section a {
+      text-decoration: none;
+      color: #5e1b8d;
+      font-weight: bold;
+    }
+    .dietary-btn {
+      width: 100%;
+      padding: 1rem;
+      background: #f4f4f4;
+      text-align: left;
+      border-radius: 12px;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+    .dietary-popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+    .dietary-popup-content {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      width: 80%;
+      max-width: 400px;
+    }
+    .dietary-popup-content h3 {
+      margin-bottom: 1rem;
+    }
+    .popup-footer {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .popup-footer button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .save-btn {
+      background: #A35C43;
+      color: white;
+    }
+    .cancel-btn {
+      background: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="ipad-frame">
+    <div class="ipad-camera"></div>
+    <header class="app-header">
+      <div class="header-content">
+        <h2>K</h2>
+        <h3>My Profile</h3>
+      </div>
+      <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
+    </header>
+
+<main class="app-content">
+  <div class="profile-header">
+    <img class="profile-pic" src="icons/profile pic.png" alt="Profile Picture">
+    <div class="profile-name" id="displayUsername">Griffin</div>
+  </div>
+
+  <div class="profile-section">
+    <h3>🥗 Dietary Preferences</h3>
+
+    <div><strong>🧬 Restrictions</strong></div>
+    <label><input type="checkbox" value="Lactose-Free"> Lactose-Free</label><br>
+    <label><input type="checkbox" value="Gluten-Free"> Gluten-Free</label><br>
+    <label><input type="checkbox" value="Peanut Allergy"> Peanut Allergy</label><br>
+    <label><input type="checkbox" value="Kosher"> Kosher</label><br>
+    <label><input type="checkbox" value="Halal"> Halal</label><br>
+
+    <div style="margin-top: 0.5rem;"><strong>🌱 Preferences</strong></div>
+    <label><input type="checkbox" value="Vegan"> Vegan</label><br>
+    <label><input type="checkbox" value="Vegetarian"> Vegetarian</label><br>
+    <label><input type="checkbox" value="Pescatarian"> Pescatarian</label><br>
+    <label><input type="checkbox" value="Keto"> Keto</label><br>
+    <label><input type="checkbox" value="Paleo"> Paleo</label><br>
+    <label><input type="checkbox" value="High-Protein"> High-Protein</label><br>
+    <label><input type="checkbox" value="Low-Carb"> Low-Carb</label><br>
+    <label><input type="checkbox" value="No Pork"> No Pork</label><br>
+    <label><input type="checkbox" value="No Red Meat"> No Red Meat</label><br>
+
+    <label><strong>✍️ Other</strong> 
+      <input type="text" id="customPreference" placeholder="Custom preference...">
+    </label>
+
+    <div class="popup-footer" style="margin-top: 1rem;">
+      <button class="save-btn" onclick="savePreferences()">Save</button>
+    </div>
+  </div>
+</main>
+
+
+    <nav class="app-navbar">
+      <a href="shoppinglist.html" class="nav-item">
+        <img src="icons/shoppinglist.svg" alt="Shopping List" />
+        <span>Shopping</span>
+      </a>
+      <a href="kitchen.html" class="nav-item">
+        <img src="icons/kitchen.svg" alt="Kitchen" />
+        <span>Inventory</span>
+      </a>
+      <a href="trackcalories.html" class="nav-item">
+        <img src="icons/recipes.svg" alt="Recipes" />
+        <span>Check Calorie</span>
+      </a>
+      <a href="profile.html" class="nav-item active">
+        <img src="icons/profile.svg" alt="Profile" />
+        <span>Profile</span>
+      </a>
+    </nav>
+    <script>
+      const username = localStorage.getItem("username");
+    
+      async function loadProfile() {
+        try {
+          const res = await fetch(`/api/users/${username}/preferences`);
+          const data = await res.json();
+          document.getElementById("displayUsername").textContent = data.username;
+    
+          const preferences = data.preferences || [];
+          document.querySelectorAll('.profile-section input[type=checkbox]').forEach(cb => {
+            cb.checked = preferences.includes(cb.value);
+          });
+          if (preferences.some(p => !cbValues().includes(p))) {
+            document.getElementById("customPreference").value = preferences.find(p => !cbValues().includes(p));
+          }
+        } catch (err) {
+          console.error("Error loading profile:", err);
+        }
+      }
+    
+      function cbValues() {
+        return Array.from(document.querySelectorAll('.profile-section input[type=checkbox]')).map(cb => cb.value);
+      }
+    
+      async function savePreferences() {
+        const checkboxes = document.querySelectorAll('.profile-section input[type=checkbox]');
+        const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+        const custom = document.getElementById('customPreference').value.trim();
+        if (custom) selected.push(custom);
+    
+        try {
+          await fetch(`/api/users/${username}/preferences`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferences: selected })
+          });
+        } catch (err) {
+          console.error("Error saving preferences:", err);
+        }
+      }
+
+      function logoutUser() {
+  localStorage.removeItem("username");
+  window.location.href = "login.html";
+}
+    
+      document.addEventListener("DOMContentLoaded", loadProfile);
+    </script>
+    
+</body>
+</html>

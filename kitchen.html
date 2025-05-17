@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kitchen - Kitchen Kompanion</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plaster&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style/main.css" />
+  </head>
+  <body>
+    <div class="ipad-frame">
+      <button class="logout-btn" onclick="logoutUser()">🚪 Logout</button>
+      <div class="ipad-camera"></div>
+
+      <header class="app-header">
+        <div class="header-content">
+          <h2>K</h2>
+          <h3>My Pantry</h3>
+        </div>
+      </header>
+
+      <main class="app-content">
+        <div class="location-tabs">
+          <button class="location-btn active" data-location="Fridge">
+            🧊 Fridge
+          </button>
+          <button class="location-btn" data-location="Pantry">🥫 Pantry</button>
+          <button class="location-btn" data-location="Freezer">
+            ❄️ Freezer
+          </button>
+          <button class="location-btn" data-location="none">
+            🔎 All Pantry Items
+          </button>
+        </div>
+
+        <form id="inventory-form">
+          <input type="text" id="item-name" placeholder="Item name" required />
+          <input type="number" id="item-qty" placeholder="Qty" required />
+          <select id="item-unit">
+            <option value="pcs">pcs</option>
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="cups">cups</option>
+            <option value="liters">liters</option>
+          </select>
+          <select id="item-storage">
+            <option value="Fridge">Fridge</option>
+            <option value="Pantry">Pantry</option>
+            <option value="Freezer">Freezer</option>
+          </select>
+          <button type="submit">Add Item</button>
+        </form>
+
+        <div id="fridge-items"></div>
+        <div id="freezer-items"></div>
+        <div id="pantry-items"></div>
+
+        <div class="inventory-scroll-container">
+          <ul id="inventory-list" class="inventory-list"></ul>
+        </div>
+      </main>
+
+      <nav class="app-navbar">
+        <a href="shoppinglist.html" class="nav-item">
+          <img src="icons/shoppinglist.svg" alt="Shopping List" />
+          <span>Shopping</span>
+        </a>
+        <a href="kitchen.html" class="nav-item active">
+          <img src="icons/kitchen.svg" alt="Kitchen" />
+          <span>Inventory</span>
+        </a>
+        <a href="trackcalories.html" class="nav-item">
+          <img src="icons/recipes.svg" alt="Recipes" />
+          <span>Check Calorie</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+          <img src="icons/profile.svg" alt="Profile" />
+          <span>Profile</span>
+        </a>
+      </nav>
+    </div>
+
+    <script>
+      const username = localStorage.getItem("username");
+      const fridgeContainer = document.getElementById("fridge-items");
+      const freezerContainer = document.getElementById("freezer-items");
+      const pantryContainer = document.getElementById("pantry-items");
+
+      async function fetchUserData() {
+        if (!username) {
+          alert("No user logged in.");
+          window.location.href = "login.html";
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/users/${username}`);
+          if (!res.ok) throw new Error("Failed to fetch user");
+          return await res.json();
+        } catch (err) {
+          console.error(err);
+          alert("Error loading user data.");
+        }
+      }
+
+      async function updateUserData(shoppingList, pantry) {
+        try {
+          await fetch(`/api/users/${username}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ shoppingList, pantry }),
+          });
+        } catch (err) {
+          console.error("Failed to update user data:", err);
+        }
+      }
+
+      let allPantryItems = [];
+
+      function renderPantry(pantry) {
+        allPantryItems = pantry; // save for later edits
+        fridgeContainer.innerHTML = "";
+        freezerContainer.innerHTML = "";
+        pantryContainer.innerHTML = "";
+
+        pantry.forEach((item, index) => {
+          const div = document.createElement("div");
+          div.classList.add("pantry-item");
+          div.innerHTML = `
+      <span>${item.quantity} ${item.name}</span>
+      <div class="button-group">
+        <button onclick="adjustQty(${index}, 1)">➕</button>
+        <button onclick="adjustQty(${index}, -1)">➖</button>
+        <button onclick="removePantryItem(${index})">🗑</button>
+      </div>
+    `;
+
+          switch (item.storage.toLowerCase()) {
+            case "fridge":
+              fridgeContainer.appendChild(div);
+              break;
+            case "freezer":
+              freezerContainer.appendChild(div);
+              break;
+            case "pantry":
+            default:
+              pantryContainer.appendChild(div);
+          }
+        });
+      }
+
+      const storageSelect = document.getElementById("item-storage");
+
+      document.querySelectorAll(".location-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".location-btn")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          const selected = btn.getAttribute("data-location").toLowerCase();
+
+          // Show/hide section logic
+          fridgeContainer.style.display =
+            selected === "fridge" || selected === "none" ? "block" : "none";
+          pantryContainer.style.display =
+            selected === "pantry" || selected === "none" ? "block" : "none";
+          freezerContainer.style.display =
+            selected === "freezer" || selected === "none" ? "block" : "none";
+        });
+      });
+
+      async function removePantryItem(index) {
+        const user = await fetchUserData();
+        allPantryItems.splice(index, 1);
+        await updateUserData(user.shoppingList, allPantryItems);
+        renderPantry(allPantryItems);
+      }
+
+      async function adjustQty(index, delta) {
+        const item = allPantryItems[index];
+        const match = item.quantity.match(/^(\d+)\s(.+)$/);
+        if (!match) return;
+
+        let [, qty, unit] = match;
+        qty = parseInt(qty) + delta;
+        if (qty <= 0) {
+          removePantryItem(index);
+          return;
+        }
+
+        item.quantity = `${qty} ${unit}`;
+        const user = await fetchUserData();
+        await updateUserData(user.shoppingList, allPantryItems);
+        renderPantry(allPantryItems);
+      }
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        const user = await fetchUserData();
+        if (user) renderPantry(user.pantry);
+
+        document.querySelector(".location-btn.active").click();
+      });
+
+      document
+        .getElementById("inventory-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const name = document.getElementById("item-name").value.trim();
+          const qty = document.getElementById("item-qty").value;
+          const unit = document.getElementById("item-unit").value;
+          const location = document.getElementById("item-storage").value;
+
+          if (!name || !qty || !unit || !location) return;
+
+          const newItem = {
+            name,
+            quantity: `${qty} ${unit}`,
+            storage: location,
+          };
+
+          const user = await fetchUserData();
+          const updatedPantry = [...user.pantry, newItem];
+          await updateUserData(user.shoppingList, updatedPantry);
+          renderPantry(updatedPantry);
+
+          document.getElementById("inventory-form").reset();
+        });
+      function logoutUser() {
+        localStorage.removeItem("username");
+        window.location.href = "login.html";
+      }
+    </script>
+  </body>
+</html>

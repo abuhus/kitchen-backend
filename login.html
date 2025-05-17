@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Kitchen Kompanion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plaster&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style/main.css" />
+</head>
+<body>
+  <div class="ipad-frame">
+    <div class="ipad-camera"></div>
+    <header class="app-header">
+      <h2>K</h2> <h3>Login</h3>
+    </header>
+
+    <main class="app-content login-wrapper">
+      <h2 class="login-title">Welcome 👋</h2>
+    
+      <form id="login-form" class="login-form">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter your username" required />
+        <button type="submit" class="login-btn">Login</button>
+      </form>
+    
+      <p id="login-error" class="login-error"></p>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById("login-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const username = document.getElementById("username").value.trim();
+      if (!username) return;
+
+      localStorage.setItem("username", username);
+
+      try {
+        const res = await fetch(`/api/users/${username}`);
+        if (res.status === 404) {
+          // Create user if not found
+          await fetch(`/api/users/${username}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shoppingList: [], pantry: [] }),
+          });
+        }
+
+        // Redirect to shopping list page
+        window.location.href = "shoppinglist.html";
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("login-error").textContent = "Login failed. Try again.";
+      }
+    });
+  </script>
+</body>
+</html>
